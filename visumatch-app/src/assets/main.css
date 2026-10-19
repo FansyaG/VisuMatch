@@ -1,1 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Poppins', sans-serif;
+
+  /* Latar Belakang Utama */
+  --color-gray-950: #080B18;
+  --color-gray-900: #12182b;
+
+  /* Warna Tombol & Aksen (Ungu) */
+  --color-purple-600: #7561F5;
+  --color-purple-400: #9385FF;
+  --color-purple-700: #5d4cd6;
+
+  /* Warna Hijau (Akurasi AI & Status API) */
+  --color-emerald-400: #6DE3C1;
+  --color-emerald-500: #5abda0; /* Sedikit lebih gelap untuk border transparan */
+  --color-green-400: #6DE3C1;
+  --color-green-500: #5abda0;
+
+  --radius-lg: 10px;
+}
+
+body {
+  background: radial-gradient(circle at 50% 0%, #17153b 0%, #0b1020 60%, #070a14 100%) fixed;
+  color: #e2e8f0;
+  min-height: 100vh;
+}

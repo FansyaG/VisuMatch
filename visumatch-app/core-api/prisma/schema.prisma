@@ -1,0 +1,177 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Admin
+  Creator
+}
+
+model Users {
+  user_id       Int              @id @default(autoincrement())
+  username      String           @unique @db.VarChar(50)
+  password_hash String           @db.VarChar(255)
+  role          Role
+  created_at    DateTime         @default(now())
+  
+  projects      Projects[]
+  assets        Internal_Assets[]
+
+  @@map("Users")
+}
+
+model Projects {
+  project_id    Int              @id @default(autoincrement())
+  user_id       Int
+  project_name  String           @db.VarChar(100)
+  resolution    String           @db.VarChar(20)
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+
+  user          Users            @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  ai_settings   AI_Settings?
+  media_aroll   Media_ARoll[]
+  timeline_edl  Timeline_EDL[]
+  pipeline_status PipelineStatus?
+  export_jobs   ExportJob[]
+
+  @@map("Projects")
+}
+
+model AI_Settings {
+  setting_id        Int       @id @default(autoincrement())
+  project_id        Int       @unique
+  language          String    @db.VarChar(10)
+  sensitivity_level Int
+
+  project           Projects  @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+
+  @@map("AI_Settings")
+}
+
+model Media_ARoll {
+  media_id    Int           @id @default(autoincrement())
+  project_id  Int
+  file_name   String        @db.VarChar(255)
+  file_path   String        @db.VarChar(500)
+  duration    Float
+  uploaded_at DateTime      @default(now())
+
+  project     Projects      @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+  transcripts Transcripts[]
+
+  @@map("Media_ARoll")
+}
+
+model Transcripts {
+  transcript_id Int                  @id @default(autoincrement())
+  media_id      Int
+  text_content  String               @db.Text
+  start_time    Float
+  end_time      Float
+
+  media         Media_ARoll          @relation(fields: [media_id], references: [media_id], onDelete: Cascade)
+  keywords      Extracted_Keywords[]
+
+  @@map("Transcripts")
+}
+
+model Extracted_Keywords {
+  keyword_id    Int         @id @default(autoincrement())
+  transcript_id Int
+  keyword       String      @db.VarChar(50)
+
+  transcript    Transcripts @relation(fields: [transcript_id], references: [transcript_id], onDelete: Cascade)
+
+  @@map("Extracted_Keywords")
+}
+
+model External_BRoll {
+  b_roll_id    Int            @id @default(autoincrement())
+  source_url   String         @db.VarChar(500)
+  provider     String         @db.VarChar(50)
+  search_query String         @db.VarChar(100)
+
+  timelines    Timeline_EDL[]
+
+  @@map("External_BRoll")
+}
+
+model Internal_Assets {
+  asset_id    Int            @id @default(autoincrement())
+  uploaded_by Int
+  title       String         @db.VarChar(100)
+  description String         @db.Text
+  file_path   String         @db.VarChar(500)
+  tags        String         @db.VarChar(255)
+  created_at  DateTime       @default(now())
+
+  uploader    Users          @relation(fields: [uploaded_by], references: [user_id], onDelete: Cascade)
+  timelines   Timeline_EDL[]
+
+  @@fulltext([title, description, tags])
+  @@map("Internal_Assets")
+}
+
+model Timeline_EDL {
+  edl_id      Int             @id @default(autoincrement())
+  project_id  Int
+  track_layer String          @db.VarChar(10)
+  start_pos   Float
+  end_pos     Float
+  b_roll_id   Int?
+  asset_id    Int?
+
+  project     Projects        @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+  b_roll      External_BRoll? @relation(fields: [b_roll_id], references: [b_roll_id], onDelete: SetNull)
+  asset       Internal_Assets?@relation(fields: [asset_id], references: [asset_id], onDelete: Restrict)
+
+  @@map("Timeline_EDL")
+}
+
+model API_Configurations {
+  config_id     Int     @id @default(autoincrement())
+  provider_name String  @db.VarChar(50)
+  api_key       String  @db.VarChar(255)
+  is_active     Boolean @default(true)
+
+  @@map("API_Configurations")
+}
+
+// ==========================================
+// Tabel Tambahan (Di luar ERD Inti)
+// ==========================================
+
+model ExportJob {
+  job_id      Int      @id @default(autoincrement())
+  project_id  Int
+  type        String   @db.VarChar(20)
+  resolution  String   @db.VarChar(20)
+  bitrate     String   @db.VarChar(20)
+  status      String   @db.VarChar(20)
+  progress    Float    @default(0)
+  file_path   String?  @db.VarChar(500)
+  created_at  DateTime @default(now())
+
+  project     Projects @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+
+  @@map("ExportJob")
+}
+
+model PipelineStatus {
+  project_id    Int      @id
+  stage         String   @db.VarChar(50)
+  status        String   @db.VarChar(20) // idle, processing, completed, failed
+  error_message String?  @db.Text
+  updated_at    DateTime @updatedAt
+
+  project       Projects @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+
+  @@map("PipelineStatus")
+}
