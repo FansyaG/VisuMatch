@@ -102,6 +102,10 @@ export async function regenerateTimelineHandler(request: FastifyRequest, reply: 
   const { edlId } = request.params as { edlId: string };
   const edlItemId = parseInt(edlId, 10);
 
+  if (isNaN(edlItemId)) {
+    throw new AppError(400, 'INVALID_PARAMETER', 'edlId must be a valid number');
+  }
+
   const parseResult = regenerateTimelineSchema.safeParse(request.body);
   if (!parseResult.success) {
     throw parseResult.error;
@@ -124,6 +128,11 @@ export async function regenerateTimelineHandler(request: FastifyRequest, reply: 
 
   if (!edlItem) {
     throw new AppError(404, 'EDL_NOT_FOUND', 'Timeline item not found');
+  }
+
+  // Ownership check: Creator can only regenerate their own project clips
+  if (edlItem.project.user_id !== request.user!.userId) {
+    throw new AppError(403, 'FORBIDDEN', 'You do not have access to this timeline item');
   }
 
   let searchQuery = parseResult.data.keyword;
@@ -215,8 +224,8 @@ export async function deleteTimelineHandler(request: FastifyRequest, reply: Fast
     throw new AppError(404, 'EDL_NOT_FOUND', 'Timeline item not found');
   }
 
-  // Check project ownership: Creator can only delete within their own project, Admin can delete any
-  if (request.user?.role !== 'Admin' && existing.project.user_id !== request.user?.userId) {
+  // Check project ownership: Creator can only delete within their own project
+  if (existing.project.user_id !== request.user?.userId) {
     throw new AppError(403, 'FORBIDDEN', 'You do not have access to this timeline item');
   }
 

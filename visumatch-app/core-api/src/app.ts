@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import multipart from '@fastify/multipart';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
@@ -26,9 +27,31 @@ export async function buildApp() {
   // Global Error Handler
   app.setErrorHandler(errorHandler);
 
-  // Plugins
+  // Rate Limiting
+  await app.register(rateLimit, {
+    global: false, // Per-route rate limiting
+  });
+
+  // CORS configuration
+  const allowedOrigins = config.corsOrigin
+    ? config.corsOrigin.split(',').map((o) => o.trim()).filter(Boolean)
+    : [];
+
   await app.register(cors, {
-    origin: '*',
+    origin: (origin, cb) => {
+      // In development or if not configured, or if origin matches allowed origins
+      if (config.nodeEnv !== 'production') {
+        cb(null, true);
+        return;
+      }
+
+      if (!origin || allowedOrigins.includes(origin)) {
+        cb(null, true);
+        return;
+      }
+
+      cb(new Error('CORS Not Allowed'), false);
+    },
     allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Range'],
     exposedHeaders: ['Content-Range', 'Accept-Ranges', 'Content-Length', 'Content-Type'],
   });

@@ -94,11 +94,33 @@ export async function apiRequest(endpoint, options = {}) {
 
 export const api = {
   // Auth
-  login: (username, password) =>
-    apiRequest('/auth/login', {
+  register: (username, email, password) =>
+    apiRequest('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, email, password }),
     }),
+  verifyEmail: (email, code) =>
+    apiRequest('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    }),
+  resendCode: (email) =>
+    apiRequest('/auth/resend-code', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }),
+  login: (identifier, password) => {
+    // If identifier contains @, pass as email, otherwise username
+    // Or pass both / match schema
+    const isEmail = identifier.includes('@')
+    const body = isEmail
+      ? { email: identifier, password }
+      : { username: identifier, password }
+    return apiRequest('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  },
   getMe: () => apiRequest('/auth/me', { method: 'GET' }),
 
   // Projects

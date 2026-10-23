@@ -14,14 +14,17 @@ enum Role {
 }
 
 model Users {
-  user_id       Int              @id @default(autoincrement())
-  username      String           @unique @db.VarChar(50)
-  password_hash String           @db.VarChar(255)
-  role          Role
-  created_at    DateTime         @default(now())
+  user_id            Int              @id @default(autoincrement())
+  username           String           @unique @db.VarChar(50)
+  email              String?          @unique @db.VarChar(255)
+  password_hash      String           @db.VarChar(255)
+  role               Role
+  email_verified_at  DateTime?        @db.DateTime(0)
+  created_at         DateTime         @default(now())
   
-  projects      Projects[]
-  assets        Internal_Assets[]
+  projects           Projects[]
+  assets             Internal_Assets[]
+  email_verifications Email_Verifications[]
 
   @@map("Users")
 }
@@ -147,6 +150,22 @@ model API_Configurations {
 // ==========================================
 // Tabel Tambahan (Di luar ERD Inti)
 // ==========================================
+
+model Email_Verifications {
+  verification_id Int       @id @default(autoincrement())
+  user_id         Int
+  code_hash       String    @db.VarChar(255)
+  purpose         String    @default("verify_email") @db.VarChar(30)
+  expires_at      DateTime  @db.DateTime(0)
+  attempts        Int       @default(0)
+  consumed_at     DateTime? @db.DateTime(0)
+  created_at      DateTime  @default(now())
+
+  user            Users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("Email_Verifications")
+}
 
 model ExportJob {
   job_id      Int      @id @default(autoincrement())

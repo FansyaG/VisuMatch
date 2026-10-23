@@ -44,6 +44,9 @@ export function authorizeRole(roles: ('Admin' | 'Creator')[]) {
       throw new AppError(401, 'UNAUTHORIZED', 'User not authenticated');
     }
     if (!roles.includes(request.user.role)) {
+      if (roles.length === 1 && roles[0] === 'Creator') {
+        throw new AppError(403, 'FORBIDDEN_ROLE', 'Endpoint ini hanya untuk Creator');
+      }
       throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
     }
   };
@@ -68,8 +71,8 @@ export async function checkProjectOwnership(request: FastifyRequest, reply: Fast
     throw new AppError(404, 'PROJECT_NOT_FOUND', 'Project not found');
   }
 
-  // Admin has access to everything; Creator can only access their own
-  if (request.user.role !== 'Admin' && project.user_id !== request.user.userId) {
+  // Admin has no special bypass for Creator endpoints; Creator can only access their own
+  if (project.user_id !== request.user.userId) {
     throw new AppError(403, 'FORBIDDEN', 'You do not have access to this project');
   }
 }

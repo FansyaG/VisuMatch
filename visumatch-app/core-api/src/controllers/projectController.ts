@@ -44,12 +44,10 @@ export async function createProjectHandler(request: FastifyRequest, reply: Fasti
 
 export async function getProjectsHandler(request: FastifyRequest, reply: FastifyReply) {
   const userId = request.user!.userId;
-  const role = request.user!.role;
 
-  const where = role === 'Admin' ? {} : { user_id: userId };
-
+  // Strict ownership: always filter by user_id = request.user.userId
   const projects = await prisma.projects.findMany({
-    where,
+    where: { user_id: userId },
     include: {
       ai_settings: true,
       pipeline_status: true,

@@ -1,10 +1,9 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import logoImage from '../assets/Logo.png' 
 import { useAuth } from '../stores/auth'
 
-const route = useRoute()
 const router = useRouter()
 const auth = useAuth()
 
@@ -19,6 +18,12 @@ const userInitials = computed(() => {
   return name.slice(0, 2).toUpperCase()
 })
 
+// Logo destination dynamic per role
+const logoDestination = computed(() => {
+  if (!auth.isAuthenticated.value) return '/'
+  return auth.isAdmin.value ? '/admin' : '/dashboard'
+})
+
 const handleLogout = () => {
   auth.logout()
   router.push('/login')
@@ -30,9 +35,9 @@ const handleLogout = () => {
     <div class="w-full flex justify-between items-center px-6 py-4">
       
       <!-- ============================================== -->
-      <!-- BAGIAN KIRI: Logo                              -->
+      <!-- BAGIAN KIRI: Logo (Sesuai Role)                 -->
       <!-- ============================================== -->
-      <RouterLink to="/" class="flex items-center gap-3">
+      <RouterLink :to="logoDestination" class="flex items-center gap-3">
         <img :src="logoImage" alt="Logo VisuMatch" class="h-10 w-auto rounded-full object-cover" />
       </RouterLink>
 
@@ -42,36 +47,49 @@ const handleLogout = () => {
       
       <!-- Tampilan Mode Aplikasi (Sudah Login) -->
       <div v-if="isAppMode" class="flex items-center gap-3 sm:gap-4">
-        <RouterLink to="/dashboard" class="text-gray-300 hover:text-white transition text-sm font-medium">
-          Dashboard
-        </RouterLink>
-        <RouterLink v-if="auth.isAdmin.value" to="/admin" class="text-purple-400 hover:text-purple-300 transition text-sm font-medium">
-          Admin Panel
-        </RouterLink>
-
-        <!-- Badge Paket Free -->
-        <span class="bg-purple-950/70 border border-purple-500/40 text-purple-300 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm">
-          <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-          Paket Free
-        </span>
-
-        <!-- Tombol Upgrade ke Pro -->
-        <button 
-          @click="showUpgradeModal = true"
-          class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-lg shadow-orange-500/20 flex items-center gap-1.5 cursor-pointer"
-        >
-          <span>✨</span>
-          <span class="hidden sm:inline">Upgrade ke Pro</span>
-        </button>
         
-        <!-- User Info & Role -->
+        <!-- ======================= -->
+        <!-- MENU KHUSUS CREATOR     -->
+        <!-- ======================= -->
+        <template v-if="!auth.isAdmin.value">
+          <RouterLink to="/dashboard" class="text-gray-300 hover:text-white transition text-sm font-medium">
+            Dashboard
+          </RouterLink>
+
+          <!-- Badge Paket Free -->
+          <span class="bg-purple-950/70 border border-purple-500/40 text-purple-300 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+            Paket Free
+          </span>
+
+          <!-- Tombol Upgrade ke Pro -->
+          <button 
+            @click="showUpgradeModal = true"
+            class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition shadow-lg shadow-orange-500/20 flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>✨</span>
+            <span class="hidden sm:inline">Upgrade ke Pro</span>
+          </button>
+        </template>
+
+        <!-- ======================= -->
+        <!-- MENU KHUSUS ADMIN       -->
+        <!-- ======================= -->
+        <template v-else>
+          <RouterLink to="/admin" class="text-purple-400 hover:text-purple-300 transition text-sm font-semibold">
+            Panel Admin
+          </RouterLink>
+          <span class="bg-purple-900/60 border border-purple-500/50 text-purple-200 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm">
+            Admin
+          </span>
+        </template>
+        
+        <!-- Info Nama Pengguna (Untuk Semua Role) -->
         <div class="flex items-center gap-2 bg-gray-800 px-3 py-1.5 rounded-full border border-gray-700 text-xs sm:text-sm">
           <span class="text-gray-300 font-medium">{{ auth.username.value }}</span>
-          <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" :class="auth.isAdmin.value ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300'">
-            {{ auth.role.value }}
-          </span>
         </div>
 
+        <!-- Tombol Keluar (Hapus token, role, dan data store -> /login) -->
         <button 
           @click="handleLogout" 
           class="bg-gray-800 hover:bg-red-900/60 hover:text-red-300 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-700 transition cursor-pointer"
@@ -79,6 +97,7 @@ const handleLogout = () => {
           Keluar
         </button>
 
+        <!-- Avatar Inisial -->
         <div class="w-9 h-9 bg-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-gray-700">
           {{ userInitials }}
         </div>
@@ -103,8 +122,8 @@ const handleLogout = () => {
     </div>
   </nav>
 
-  <!-- Modal Upgrade Free vs Pro -->
-  <div v-if="showUpgradeModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <!-- Modal Upgrade Free vs Pro (Hanya untuk Creator) -->
+  <div v-if="showUpgradeModal && !auth.isAdmin.value" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl p-6 sm:p-8 relative shadow-2xl">
       <button 
         @click="showUpgradeModal = false" 
@@ -154,7 +173,7 @@ const handleLogout = () => {
                 <span>✨</span> Pro
               </h3>
             </div>
-            <p class="text-2xl font-extrabold text-purple-300 mb-4">Rp 99.000 <span class="text-xs font-normal text-gray-500">/ bulan</span></p>
+            <p class="text-2xl font-extrabold text-purple-300 mb-4">Rp -- <span class="text-xs font-normal text-gray-500">/ bulan</span></p>
             <ul class="space-y-2 text-xs text-gray-200 mb-4">
               <li class="flex items-center gap-2">✓ Semua fitur paket Free</li>
               <li class="flex items-center gap-2">✓ Render Otomatis MP4 di Server</li>
@@ -168,12 +187,6 @@ const handleLogout = () => {
             <span class="inline-block w-full py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-300 rounded-lg text-xs font-bold mb-2">
               Segera hadir
             </span>
-            <button 
-              @click="showUpgradeModal = false"
-              class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white py-2 rounded-lg text-xs font-bold transition cursor-pointer"
-            >
-              Tutup
-            </button>
           </div>
         </div>
       </div>

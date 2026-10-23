@@ -1,8 +1,34 @@
 import { z } from 'zod';
 
+export const registerSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username cannot exceed 50 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username must be alphanumeric or underscore'),
+  email: z.string().email('Invalid email address').max(255),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-zA-Z])(?=.*\d)/, 'Password must contain both letters and numbers'),
+});
+
+export const verifyEmailSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  code: z.string().min(1, 'Verification code is required'),
+});
+
+export const resendCodeSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
 export const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  username: z.string().optional(),
+  email: z.string().optional(),
   password: z.string().min(1, 'Password is required'),
+}).refine((data) => data.username || data.email, {
+  message: 'Username or email is required',
+  path: ['username'],
 });
 
 export const createProjectSchema = z.object({
